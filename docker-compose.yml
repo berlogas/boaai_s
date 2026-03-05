@@ -20,17 +20,21 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: berezhinskii-api    
+    container_name: berezhinskii-api
     restart: unless-stopped
     environment:
       - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_API_BASE=http://ollama:11434
+      - OPENAI_API_KEY=ollama
       - DATA_PATH=/app/data
       - GLOBAL_INDEX_PATH=/app/global_index
+      - UPLOADS_PATH=/app/uploads
       - SECRET_KEY=${SECRET_KEY:-change_me_in_production}
       - LOG_LEVEL=INFO
     volumes:
-      - backend_data:/app/data
-      - global_index:/app/global_index
+      - ./data_volume:/app/data
+      - ./data_volume/global_index:/app/global_index
+      - ./data_volume/uploads:/app/uploads
       - ./backend/app:/app/app
       - /var/run/docker.sock:/var/run/docker.sock
     ports:
@@ -64,10 +68,6 @@ services:
 
 volumes:
   ollama_data:
-    driver: local
-  backend_data:
-    driver: local
-  global_index:
     driver: local
 
 networks:

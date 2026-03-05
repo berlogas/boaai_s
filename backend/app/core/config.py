@@ -19,9 +19,10 @@ class Settings(BaseSettings):
     
     DATA_PATH: str = "/app/data"
     GLOBAL_INDEX_PATH: str = "/app/global_index"
-    
+    UPLOADS_PATH: str = "/app/uploads"
+
     LOG_LEVEL: str = "INFO"
-    
+
     class Config:
         env_file = ".env"
         case_sensitive = True
@@ -30,3 +31,4 @@ settings = Settings()
 
 os.makedirs(settings.DATA_PATH, exist_ok=True)
 os.makedirs(settings.GLOBAL_INDEX_PATH, exist_ok=True)
+os.makedirs(settings.UPLOADS_PATH, exist_ok=True)

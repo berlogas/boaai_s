@@ -13,8 +13,10 @@ if "editing_user" not in st.session_state:
     st.session_state.editing_user = None
 if "deleting_user" not in st.session_state:
     st.session_state.deleting_user = None
+if "deleting_doc" not in st.session_state:
+    st.session_state.deleting_doc = None
 
-tab1, tab2 = st.tabs(["👥 Пользователи", "📁 Сессии"])
+tab1, tab2, tab3, tab4 = st.tabs(["👥 Пользователи", "📁 Сессии", "📚 Глобальная база", "📊 Аудит"])
 
 with tab1:
     st.markdown("### ➕ Создать пользователя")
@@ -139,7 +141,7 @@ with tab1:
 with tab2:
     st.markdown("### 📁 Все сессии")
     st.info("Список сессий всех пользователей")
-    
+
     try:
         headers = api_client.get_headers()
         response = requests.get(f"{api_client.base_url}/admin/sessions", headers=headers)
@@ -157,3 +159,196 @@ with tab2:
             st.error(f"Ошибка загрузки: {response.status_code}")
     except Exception as e:
         st.error(f"Ошибка: {str(e)}")
+
+with tab3:
+    st.markdown("### 📚 Глобальная база знаний")
+    st.caption("Пополняйте базу, добавляя файлы в папку uploads")
+
+    # Инструкция для пользователя
+    st.info("📁 **Папка для загрузки:** `data_volume/uploads/`")
+    st.markdown(f"""
+    **Как загрузить файлы:**
+    1. Скопируйте файлы (PDF, TXT, MD, DOCX и др.) в папку `/home/homo/projects/boaai_s/data_volume/uploads/`
+    2. Нажмите кнопку **"🔄 Загрузить файлы из папки uploads"** ниже
+    3. Файлы будут обработаны и добавлены в глобальную базу (это может занять несколько минут)
+    
+    **Поддерживаемые форматы:** `.pdf`, `.txt`, `.md`, `.html`, `.docx`, `.xlsx`, `.pptx`, `.py`, `.ts`, `.yaml`, `.json`, `.csv`, `.xml`
+    """)
+
+    # Кнопка загрузки всех файлов из uploads
+    st.markdown("#### 🚀 Загрузка файлов")
+    
+    col_btn1, col_btn2 = st.columns([1, 3])
+    with col_btn1:
+        if st.button("🔄 Загрузить файлы", use_container_width=True, type="primary"):
+            # Запускаем загрузку
+            result = api_client.process_pending_uploads()
+            
+            if result:
+                st.info(f"🔄 {result['message']}")
+                
+                # Показываем прогресс с обновлением
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                log_container = st.empty()
+                
+                # Ждём завершения с обновлением прогресса
+                import time
+                max_wait = 600  # 10 минут максимум
+                start_time = time.time()
+                
+                while time.time() - start_time < max_wait:
+                    time.sleep(2)
+                    status = api_client.get_upload_status()
+                    
+                    if status.get('completed'):
+                        progress_bar.progress(100)
+                        status_text.success(f"✅ {status.get('message', 'Загрузка завершена!')}")
+                        
+                        if status.get('uploaded'):
+                            st.success("📊 **Загруженные файлы:**")
+                            for i, doc in enumerate(status['uploaded'], 1):
+                                st.write(f"  {i}. 📄 {doc['name']} ({doc['size_mb']} MB)")
+                            st.success("✅ Индексация завершена! Файлы доступны для поиска.")
+                        
+                        if status.get('errors'):
+                            st.error("❌ **Ошибки при загрузке:**")
+                            for err in status['errors']:
+                                st.error(f"  • {err['name']}: {err['error']}")
+                        
+                        st.rerun()
+                    else:
+                        # Показываем текущий статус с прогрессом
+                        elapsed = int(time.time() - start_time)
+                        
+                        # Получаем детальный прогресс
+                        progress = status.get('progress', 0)
+                        current_file = status.get('current_file', '')
+                        
+                        if current_file:
+                            status_text.info(f"⏳ Обработка: {current_file} ({elapsed} сек)")
+                            progress_bar.progress(progress)
+                            log_container.caption(f"🔄 [{status.get('message', 'Обработка...')}]")
+                        else:
+                            status_text.info(f"⏳ Обработка... ({elapsed} сек)")
+                            progress_bar.progress(min(50 + (elapsed // 10), 90))
+                            log_container.caption("Идёт индексация файлов. Это может занять несколько минут.")
+                        
+                        time.sleep(1)  # Небольшая пауза перед следующим обновлением
+                        
+                status_text.error("⏰ Таймаут ожидания. Проверьте логи.")
+                st.rerun()
+
+    # Список файлов в uploads
+    st.markdown("#### 📥 Ожидают загрузки")
+    pending_docs = api_client.get_pending_uploads()
+
+    if not pending_docs:
+        st.info("📭 Нет файлов, ожидающих загрузки")
+    else:
+        st.caption(f"Файлов в очереди: {len(pending_docs)}")
+        
+        # Показываем суммарный размер
+        total_size = sum(doc['size_mb'] for doc in pending_docs)
+        st.caption(f"Общий размер: {total_size:.2f} MB")
+        
+        for doc in pending_docs:
+            with st.expander(f"📄 **{doc['name']}** ({doc['size_mb']} MB)"):
+                st.caption(f"Добавлен: {doc['added_at']}")
+                st.caption(f"Путь: {doc['path']}")
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.info("ℹ️ Файл готов к загрузке")
+                with col2:
+                    if st.button("🗑️ Удалить из очереди", key=f"del_pending_{doc['name']}"):
+                        result = api_client.delete_pending_upload(doc['name'])
+                        if result:
+                            st.success(result['message'])
+                            st.rerun()
+
+    st.markdown("---")
+
+    # Список документов в базе
+    st.markdown("#### 📄 Документы в базе")
+
+    # Кнопка переиндексации
+    col_rebuild1, col_rebuild2 = st.columns([1, 4])
+    with col_rebuild1:
+        if st.button("🔄 Переиндексировать", use_container_width=True, help="Пересоздать индекс всех документов"):
+            with st.spinner("Переиндексация..."):
+                result = api_client.rebuild_global_index()
+                if result:
+                    st.success("✅ Индекс переиндексирован!")
+                else:
+                    st.error("Ошибка при переиндексации")
+
+    # Список документов
+    global_docs = api_client.get_global_documents()
+
+    if not global_docs:
+        st.info("📭 В глобальной базе нет документов")
+    else:
+        st.caption(f"Всего документов: {len(global_docs)}")
+
+        for doc in global_docs:
+            is_deleting = st.session_state.deleting_doc == doc['name']
+
+            if is_deleting:
+                with st.expander(f"📄 **{doc['name']}**", expanded=True):
+                    st.warning(f"⚠️ Удалить документ **{doc['name']}** из глобальной базы?")
+                    st.caption(f"Путь: {doc['path']} | Размер: {doc['size_mb']} МБ")
+
+                    col_yes, col_no = st.columns(2)
+                    with col_yes:
+                        if st.button("✅ Да, удалить", key=f"yes_del_doc_{doc['name']}", use_container_width=True, type="primary"):
+                            result = api_client.delete_global_document(doc['name'])
+                            if result:
+                                st.success(f"✅ {result['message']}")
+                                st.session_state.deleting_doc = None
+                                st.rerun()
+                    with col_no:
+                        if st.button("❌ Отмена", key=f"no_del_doc_{doc['name']}", use_container_width=True):
+                            st.session_state.deleting_doc = None
+                            st.rerun()
+            else:
+                with st.expander(f"📄 **{doc['name']}**"):
+                    st.caption(f"Путь: {doc['path']} | Размер: {doc['size_mb']} МБ | Загружен: {doc['uploaded_at']}")
+
+                    if st.button("🗑️ Удалить", key=f"del_btn_doc_{doc['name']}"):
+                        st.session_state.deleting_doc = doc['name']
+                        st.rerun()
+
+with tab4:
+    st.markdown("### 📊 Журнал аудита активности")
+    st.caption("Последние действия пользователей в системе")
+    
+    audit_logs = api_client.get_audit_log()
+    
+    if not audit_logs:
+        st.info("📭 Нет записей в журнале аудита")
+    else:
+        # Отображаем в обратном порядке (новые сверху)
+        for log in reversed(audit_logs):
+            timestamp = log.get('timestamp', 'N/A')[:19].replace('T', ' ')
+            action = log.get('action', 'unknown')
+            user = log.get('user', 'unknown')
+            details = log.get('details', {})
+            
+            # Иконка для действия
+            icon_map = {
+                "user_created": "➕",
+                "user_updated": "✏️",
+                "user_deleted": "🗑️",
+                "global_doc_uploaded": "📤",
+                "global_doc_deleted": "📥",
+                "index_rebuilt": "🔄"
+            }
+            icon = icon_map.get(action, "📝")
+            
+            with st.expander(f"{icon} [{timestamp}] {user}: {action}", expanded=False):
+                if details:
+                    for key, value in details.items():
+                        st.caption(f"**{key}**: {value}")
+                else:
+                    st.caption("Без дополнительных деталей")

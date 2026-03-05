@@ -28,7 +28,7 @@ if grep -q "your_super_secret_key_change_in_prod" .env; then
 fi
 
 # 3. Создание директорий
-mkdir -p data_volume/{global_index,sessions,backup} ollama_data
+mkdir -p data_volume/{global_index,sessions,backup,uploads} ollama_data
 
 # 4. Запуск контейнеров
 echo "🐳 Запуск контейнеров..."

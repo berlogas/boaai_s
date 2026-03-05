@@ -183,6 +183,21 @@ ruff check frontend/app
 
 ## ⚙️ Полезные команды
 
+### Загрузка в глобальную базу знаний
+
+```bash
+# Через Python скрипт
+python upload_global.py /path/to/paper1.pdf /path/to/paper2.pdf
+
+# Через Docker (прямой доступ к индексу)
+docker exec -it berezhinskii-api python << EOF
+from paperqa import Docs
+docs = Docs()
+await docs.aadd('/app/data/documents/your_paper.pdf')
+docs.save('/app/global_index')
+EOF
+```
+
 ### Docker
 
 ```bash

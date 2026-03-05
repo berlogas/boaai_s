@@ -1,10 +1,12 @@
 import requests
+import httpx
 import streamlit as st
 from typing import Optional, Dict, List
 
 class APIClient:
     def __init__(self, base_url: str = None):
-        self.base_url = base_url or st.secrets.get("BACKEND_URL", "http://backend:8000")
+        # Используем IP напрямую для надёжности
+        self.base_url = base_url or "http://172.18.0.3:8000"
         self.token = None
         self.role = None
     
@@ -123,5 +125,197 @@ class APIClient:
         except Exception as e:
             st.error(f"Ошибка: {str(e)}")
             return None
+
+    def get_global_documents(self) -> List[Dict]:
+        """Получить список документов в глобальной базе"""
+        try:
+            response = requests.get(
+                f"{self.base_url}/admin/global-index/documents",
+                headers=self.get_headers()
+            )
+            if response.status_code == 200:
+                return response.json()
+            return []
+        except Exception as e:
+            st.error(f"Ошибка: {str(e)}")
+            return []
+
+    def upload_to_global_index(self, uploaded_file) -> Optional[Dict]:
+        """Загрузить документ в глобальную базу через curl"""
+        try:
+            token = st.session_state.get("auth_token")
+            if not token:
+                st.error("Нет токена авторизации.")
+                return None
+            
+            import subprocess
+            import json
+            import os
+            
+            # Сохраняем файл
+            file_data = uploaded_file.read()
+            tmp_path = f'/tmp/upload_{uploaded_file.name}'
+            
+            with open(tmp_path, 'wb') as f:
+                f.write(file_data)
+            
+            st.write(f"📤 Загрузка файла...")
+            
+            # Выполняем curl БЕЗ capture_output - вывод напрямую
+            cmd = f'curl -s -w "\\nHTTP_CODE:%{{http_code}}" -X POST "http://172.18.0.3:8000/admin/global-index/upload" -H "Authorization: Bearer {token}" -H "Connection: close" -F "file=@{tmp_path}"'
+            
+            st.write(f"📞 {cmd}")
+            
+            # Используем shell=True для правильного экранирования
+            result = subprocess.run(
+                cmd,
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                timeout=60,
+                bufsize=1
+            )
+            
+            output = result.stdout
+            
+            st.write(f"📥 Вывод curl:")
+            st.code(output[:500])
+            
+            # Ищем HTTP код
+            if 'HTTP_CODE:' in output:
+                http_code = output.split('HTTP_CODE:')[1].strip()
+                body = '\n'.join(output.split('HTTP_CODE:')[0].split('\n')[:-1])
+                
+                if http_code == '200':
+                    try:
+                        response_data = json.loads(body)
+                        st.write(f"✅ Успех: {response_data.get('message', 'OK')}")
+                        return response_data
+                    except Exception as e:
+                        st.error(f"Ошибка парсинга JSON: {e}")
+                        st.error(f"Тело: {body[:200]}")
+                else:
+                    st.error(f"HTTP ошибка: {http_code}")
+                    st.error(f"Ответ: {body[:200]}")
+            else:
+                st.error("Не найден HTTP_CODE в выводе")
+            
+            return None
+            
+        except subprocess.TimeoutExpired:
+            st.error("⏰ Таймаут (60 сек)")
+            return None
+        except Exception as e:
+            st.error(f"❌ Ошибка: {str(e)}")
+            import traceback
+            st.code(traceback.format_exc())
+            return None
+        finally:
+            try:
+                os.unlink(tmp_path)
+            except:
+                pass
+
+    def delete_global_document(self, doc_name: str) -> Optional[Dict]:
+        """Удалить документ из глобальной базы"""
+        try:
+            response = requests.delete(
+                f"{self.base_url}/admin/global-index/documents/{doc_name}",
+                headers=self.get_headers()
+            )
+            if response.status_code == 200:
+                return response.json()
+            st.error(f"Ошибка: {response.status_code}")
+            return None
+        except Exception as e:
+            st.error(f"Ошибка: {str(e)}")
+            return None
+
+    def rebuild_global_index(self) -> Optional[Dict]:
+        """Переиндексировать глобальную базу"""
+        try:
+            response = requests.post(
+                f"{self.base_url}/admin/global-index/rebuild",
+                headers=self.get_headers()
+            )
+            if response.status_code == 200:
+                return response.json()
+            st.error(f"Ошибка: {response.status_code}")
+            return None
+        except Exception as e:
+            st.error(f"Ошибка: {str(e)}")
+            return None
+
+    def get_pending_uploads(self) -> List[Dict]:
+        """Получить список файлов в папке uploads"""
+        try:
+            response = requests.get(
+                f"{self.base_url}/admin/global-index/pending",
+                headers=self.get_headers()
+            )
+            if response.status_code == 200:
+                return response.json()
+            return []
+        except Exception as e:
+            st.error(f"Ошибка: {str(e)}")
+            return []
+
+    def process_pending_uploads(self) -> Optional[Dict]:
+        """Загрузить все файлы из папки uploads в глобальную базу"""
+        try:
+            response = requests.post(
+                f"{self.base_url}/admin/global-index/process-uploads",
+                headers=self.get_headers()
+            )
+            if response.status_code == 200:
+                return response.json()
+            st.error(f"Ошибка: {response.status_code}")
+            return None
+        except Exception as e:
+            st.error(f"Ошибка: {str(e)}")
+            return None
+
+    def delete_pending_upload(self, file_name: str) -> Optional[Dict]:
+        """Удалить файл из папки uploads без загрузки"""
+        try:
+            response = requests.delete(
+                f"{self.base_url}/admin/global-index/pending/{file_name}",
+                headers=self.get_headers()
+            )
+            if response.status_code == 200:
+                return response.json()
+            st.error(f"Ошибка: {response.status_code}")
+            return None
+        except Exception as e:
+            st.error(f"Ошибка: {str(e)}")
+            return None
+
+    def get_upload_status(self) -> Dict:
+        """Получить статус загрузки файлов"""
+        try:
+            response = requests.get(
+                f"{self.base_url}/admin/global-index/process-uploads/status",
+                headers=self.get_headers()
+            )
+            if response.status_code == 200:
+                return response.json()
+            return {"message": "Нет данных о загрузке"}
+        except Exception as e:
+            return {"message": f"Ошибка: {str(e)}"}
+
+    def get_audit_log(self) -> List[Dict]:
+        """Получить журнал аудита"""
+        try:
+            response = requests.get(
+                f"{self.base_url}/admin/audit-log",
+                headers=self.get_headers()
+            )
+            if response.status_code == 200:
+                return response.json()
+            return []
+        except Exception as e:
+            st.error(f"Ошибка: {str(e)}")
+            return []
 
 api_client = APIClient()
