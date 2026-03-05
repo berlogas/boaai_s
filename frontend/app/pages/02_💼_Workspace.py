@@ -17,20 +17,33 @@ st.markdown(f"### 📁 {session['name']}")
 tab1, tab2 = st.tabs(["💬 Чат", "📄 Документы"])
 
 with tab1:
-    mode = st.selectbox("Режим поиска", ["hybrid", "session_only", "global_only"])
+    mode = st.selectbox("Режим поиска", ["hybrid", "session_only", "global_only"], key="search_mode")
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
+
+    # Отображение истории
     for msg in st.session_state.chat_history:
         with st.chat_message(msg["role"]):
             st.write(msg["content"])
-    if prompt := st.chat_input("Спросите..."):
-        st.session_state.chat_history.append({"role": "user", "content": prompt})
-        with st.chat_message("assistant"):
+
+    # Обработка отправки
+    def send_message():
+        prompt = st.session_state.chat_text_input
+        if prompt:
+            st.session_state.chat_history.append({"role": "user", "content": prompt})
+            
             with st.spinner("Генерация..."):
                 result = api_client.query(query=prompt, session_id=session["id"], mode=mode)
                 if result:
-                    st.write(result["answer"])
                     st.session_state.chat_history.append({"role": "assistant", "content": result["answer"]})
+
+    # Поле ввода с кнопкой в одной строке
+    with st.form(key="chat_form", clear_on_submit=True):
+        col1, col2 = st.columns([10, 1])
+        with col1:
+            st.text_input("Спросите...", key="chat_text_input", label_visibility="collapsed", placeholder="Введите вопрос и нажмите Enter...")
+        with col2:
+            st.form_submit_button("➤", on_click=send_message, help="Отправить (Enter)")
 
 with tab2:
     uploaded_file = st.file_uploader("Загрузить", type=["pdf", "txt", "md"])

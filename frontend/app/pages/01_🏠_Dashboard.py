@@ -2,12 +2,17 @@ import streamlit as st
 from core.api_client import api_client
 
 user_info = st.session_state.get("user_info", {})
-username = user_info.get("username", "Исследователь")
-st.title(f"🔬 Исследователь {username}")
+username = user_info.get("username") if user_info else None
+
+if username:
+    st.title(f"🔬 Исследователь {username}")
+else:
+    st.title("🔬 Исследователь")
 
 st.markdown("### ⚡ Быстрый вопрос")
-query = st.text_input("Ваш вопрос", placeholder="Спросите о чём-нибудь...")
-if st.button("🔍 Найти"):
+
+def send_quick_query():
+    query = st.session_state.quick_query_input
     if query:
         with st.spinner("Поиск..."):
             result = api_client.quick_query(query)
@@ -15,6 +20,13 @@ if st.button("🔍 Найти"):
                 st.write(result.get("answer", "Нет ответа"))
             else:
                 st.error("Ошибка при получении ответа")
+
+with st.form(key="quick_query_form", clear_on_submit=True):
+    col1, col2 = st.columns([10, 1])
+    with col1:
+        st.text_input("Ваш вопрос", key="quick_query_input", label_visibility="collapsed", placeholder="Спросите о чём-нибудь...")
+    with col2:
+        st.form_submit_button("🔍", on_click=send_quick_query, help="Найти (Enter)")
 
 st.markdown("---")
 st.markdown("### 📁 Ваши сессии")
