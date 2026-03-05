@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.so
+.Python
+venv/
+env/
+.venv/
+
+# Docker
+*.log
+.env
+
+# Data
+data_volume/*
+!data_volume/.gitkeep
+backend/app/data/*
+!backend/app/data/.gitkeep
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+# OS
+.DS_Store
+Thumbs.db
+
+# Tests
+.pytest_cache/
+.coverage
+htmlcov/

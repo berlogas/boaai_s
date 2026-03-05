@@ -1,0 +1,20 @@
+# Backend
+backend/__pycache__/
+backend/*.pyc
+backend/.git
+backend/venv/
+backend/data/
+backend/global_index/
+
+# Frontend
+frontend/__pycache__/
+frontend/*.pyc
+frontend/.git
+frontend/venv/
+
+# General
+*.md
+*.txt
+!requirements.txt
+.env
+.gitignore
