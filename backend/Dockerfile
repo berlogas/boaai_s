@@ -12,6 +12,16 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Исправление Unicode-проблемы в paper-qa (surrogate characters в PDF)
+RUN python3 -c "\
+import os; \
+utils_path = '/usr/local/lib/python3.11/site-packages/paperqa/utils.py'; \
+content = open(utils_path).read(); \
+content = content.replace('data = data.encode(\"utf-8\")', 'data = data.encode(\"utf-8\", errors=\"replace\")'); \
+open(utils_path, 'w').write(content); \
+print('✅ PaperQA Unicode fix applied')\
+"
+
 COPY ./app ./app
 RUN mkdir -p /app/data /app/global_index /app/uploads
 

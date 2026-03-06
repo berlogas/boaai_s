@@ -178,36 +178,72 @@ async def upload_document(
     session = await session_manager.get_session(session_id, current_user["username"])
     if not session:
         raise HTTPException(status_code=404, detail="Сессия не найдена")
-    
+
     file_path = os.path.join(settings.DATA_PATH, "sessions", session_id, file.filename)
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
-    
+
     with open(file_path, "wb") as buffer:
         buffer.write(await file.read())
-    
-    file_size_mb = os.path.getsize(file_path) / (1024 * 1024)
-    
+
+    file_size_bytes = os.path.getsize(file_path)
+    file_size_mb = file_size_bytes / (1024 * 1024)
+
     doc_meta = {
         "name": file.filename,
         "path": file_path,
         "category": category,
         "project_id": project_id,
-        "size_mb": round(file_size_mb, 2),
+        "size_mb": round(file_size_mb, 6),  # Больше знаков для малых файлов
+        "size_bytes": file_size_bytes,  # Сохраняем точный размер
         "uploaded_at": __import__('datetime').datetime.now().isoformat()
     }
-    
+
     updated_session = await session_manager.add_document(
         session_id, current_user["username"], doc_meta
     )
-    
-    session_pqa = rag_engine._get_session_pqa(session_id)    
+
+    session_pqa = rag_engine._get_session_pqa(session_id)
     await session_pqa.add_document(file_path, file.filename, category, project_id)
-    
+
     return {
         "message": "Документ загружен",
         "document": doc_meta,
         "session": updated_session
     }
+
+@app.get("/sessions/{session_id}/documents")
+async def get_session_documents(
+    session_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Получить список документов сессии"""
+    session = await session_manager.get_session(session_id, current_user["username"])
+    if not session:
+        raise HTTPException(status_code=404, detail="Сессия не найдена")
+    
+    documents = session.get("documents", [])
+    return documents
+
+@app.post("/upload/session/{session_id}")
+async def upload_to_session(
+    session_id: str,
+    file: UploadFile = File(...),
+    category: str = "temp_literature",
+    current_user: dict = Depends(get_current_user)
+):
+    """Загрузить документ в сессию пользователя"""
+    return await upload_document(session_id, file, category, None, current_user)
+
+@app.post("/upload/global")
+async def upload_to_global(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """Загрузить документ в глобальную базу (только admin)"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Только admin может загружать в глобальную базу")
+    
+    return await upload_to_global_index(file, current_user)
 
 @app.get("/admin/users", dependencies=[Depends(require_role("admin"))])
 async def list_users(current_user: dict = Depends(get_current_user)):
@@ -277,22 +313,29 @@ async def upload_to_global_index(
         raise HTTPException(status_code=500, detail=f"Ошибка индексации: {str(e)}")
 
 @app.get("/admin/global-index/documents", dependencies=[Depends(require_role("admin"))])
-async def list_global_documents(current_user: dict = Depends(get_current_user)):
-    """Получить список документов в глобальной базе"""
+async def list_global_documents_admin(current_user: dict = Depends(get_current_user)):
+    """Получить список документов в глобальной базе (admin)"""
+    return await list_global_documents_public()
+
+@app.get("/global-index/documents")
+async def list_global_documents_public():
+    """Получить список документов в глобальной базе (все пользователи)"""
     import glob
     doc_pattern = os.path.join(settings.GLOBAL_INDEX_PATH, "documents", "*")
     documents = []
-    
+
     for file_path in glob.glob(doc_pattern):
         if os.path.isfile(file_path):
             stat = os.stat(file_path)
+            size_bytes = stat.st_size
             documents.append({
                 "name": os.path.basename(file_path),
                 "path": file_path,
-                "size_mb": round(stat.st_size / (1024 * 1024), 2),
+                "size_mb": round(size_bytes / (1024 * 1024), 6),
+                "size_bytes": size_bytes,
                 "uploaded_at": datetime.fromtimestamp(stat.st_mtime).isoformat()
             })
-    
+
     return documents
 
 @app.delete("/admin/global-index/documents/{doc_name}", dependencies=[Depends(require_role("admin"))])

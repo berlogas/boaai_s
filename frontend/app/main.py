@@ -1,7 +1,16 @@
 import streamlit as st
 from core.api_client import api_client
+from utils.streamlit_custom import render_custom_header
+
+# Отключение всех внешних соединений Streamlit
+import os
+os.environ["STREAMLIT_BROWSER_GATHER_USAGE_STATS"] = "false"
+os.environ["STREAMLIT_SERVER_ENABLE_STATIC_SERVING"] = "false"
 
 st.set_page_config(page_title="BOAAI_S", page_icon="🔬", layout="wide")
+
+# Рендерим кастомный header который перекроет кнопку Deploy
+render_custom_header("🔬 BOAAI_S - Научный ассистент")
 
 if "auth_token" not in st.session_state:
     st.session_state.auth_token = None

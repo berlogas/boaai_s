@@ -1,0 +1,24 @@
+/* Скрыть кнопку "Deploy" в верхнем правом углу */
+#MainMenu {visibility: hidden;}
+header {visibility: hidden;}
+footer {visibility: hidden;}
+
+/* Скрыть стандартный header */
+.stApp > header {
+    display: none !important;
+}
+
+/* Скрыть уведомления о подключении к интернету */
+[data-testid="stAlertWrapper"] {
+    display: none !important;
+}
+
+/* Скрыть любые toast-уведомления */
+[data-testid="stToast"] {
+    display: none !important;
+}
+
+/* Скрыть индикаторы загрузки сети */
+[data-testid="stStatusContainer"] {
+    display: none !important;
+}

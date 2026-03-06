@@ -5,10 +5,12 @@ from typing import Optional, Dict, List
 
 class APIClient:
     def __init__(self, base_url: str = None):
-        # Используем IP напрямую для надёжности
-        self.base_url = base_url or "http://172.18.0.3:8000"
-        self.token = None
-        self.role = None
+        # Используем имя сервиса Docker для надёжности
+        # IP адрес может меняться при пересоздании контейнеров
+        self.base_url = base_url or "http://backend:8000"
+        # Инициализируем токен из session_state при каждом создании экземпляра
+        self.token = st.session_state.get("auth_token", None)
+        self.role = st.session_state.get("user_role", None)
     
     def set_token(self, token: str, role: str):
         self.token = token
@@ -127,11 +129,12 @@ class APIClient:
             return None
 
     def get_global_documents(self) -> List[Dict]:
-        """Получить список документов в глобальной базе"""
+        """Получить список документов в глобальной базе (доступно всем)"""
         try:
+            # Используем публичный endpoint без авторизации
             response = requests.get(
-                f"{self.base_url}/admin/global-index/documents",
-                headers=self.get_headers()
+                f"{self.base_url}/global-index/documents",
+                timeout=10
             )
             if response.status_code == 200:
                 return response.json()
@@ -162,7 +165,7 @@ class APIClient:
             st.write(f"📤 Загрузка файла...")
             
             # Выполняем curl БЕЗ capture_output - вывод напрямую
-            cmd = f'curl -s -w "\\nHTTP_CODE:%{{http_code}}" -X POST "http://172.18.0.3:8000/admin/global-index/upload" -H "Authorization: Bearer {token}" -H "Connection: close" -F "file=@{tmp_path}"'
+            cmd = f'curl -s -w "\\nHTTP_CODE:%{{http_code}}" -X POST "http://backend:8000/admin/global-index/upload" -H "Authorization: Bearer {token}" -H "Connection: close" -F "file=@{tmp_path}"'
             
             st.write(f"📞 {cmd}")
             

@@ -48,11 +48,16 @@ sessions = api_client.get_sessions()
 if not sessions:
     st.info("📭 Нет активных сессий")
 else:
+    st.caption(f"Всего сессий: {len(sessions)}")
+    
     for session in sessions[:5]:
         with st.container():
             st.markdown(f"**🟢 {session['name']}**")
-            st.caption(f"Документов: {len(session.get('documents', []))} | Последнее: {session.get('last_action', 'N/A')}")
-            if st.button("▶️ Продолжить", key=f"resume_{session['id']}"):
+            st.caption(f"📄 Документов: {len(session.get('documents', []))} | 🕒 Последнее: {session.get('last_action', 'N/A')}")
+            
+            # Кнопка "Продолжить" с переходом в Workspace
+            if st.button("▶️ Продолжить работу", key=f"resume_{session['id']}", use_container_width=True):
                 st.session_state["current_session"] = session
-                st.rerun()            
-                st.markdown("---")
+                # Принудительно переключаем на Workspace
+                st.query_params["page"] = "workspace"
+                st.switch_page("pages/02_💼_Workspace.py")
