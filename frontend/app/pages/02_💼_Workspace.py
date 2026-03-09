@@ -60,8 +60,9 @@ with tab2:
     st.caption("Документы будут доступны только в вашей сессии")
     
     # Ключ для принудительного обновления загрузчика
-    upload_key = f"upload_{len(session.get('documents', []))}"
-    
+    upload_key_suffix = st.session_state.get(f"upload_key_{session['id']}", 0)
+    upload_key = f"upload_{session['id']}_{upload_key_suffix}"
+
     uploaded_file = st.file_uploader(
         "Выберите файл",
         type=["pdf", "txt", "md", "docx"],
@@ -71,25 +72,37 @@ with tab2:
     
     if uploaded_file:
         st.info(f"📄 Файл: **{uploaded_file.name}** ({uploaded_file.size / 1024:.1f} KB)")
-        
+
         if st.button("📤 Загрузить в сессию", type="primary"):
             try:
                 # Загружаем файл через API
                 headers = {"Authorization": f"Bearer {api_client.token}"}
-                files = {"file": (uploaded_file.name, uploaded_file.getvalue(), "application/octet-stream")}
-                
-                with st.spinner("⏳ Загрузка файла..."):
+
+                # Читаем файл в байты
+                file_bytes = uploaded_file.getvalue()
+                file_size_mb = len(file_bytes) / (1024 * 1024)
+
+                # Предупреждение для больших файлов
+                if file_size_mb > 5:
+                    st.warning(f"⚠️ Файл большой ({file_size_mb:.1f} MB). Обработка может занять время...")
+
+                with st.spinner("⏳ Загрузка файла... Это может занять несколько минут"):
+                    # Отправляем файл как multipart/form-data
+                    files = {"file": (uploaded_file.name, file_bytes, "application/octet-stream")}
+
                     response = requests.post(
                         f"{api_client.base_url}/upload/session/{session['id']}",
                         headers=headers,
                         files=files,
-                        timeout=60
+                        timeout=300  # 5 минут на обработку
                     )
-                
+
                 if response.status_code == 200:
                     result = response.json()
                     st.success(f"✅ Файл '{uploaded_file.name}' загружен в сессию!")
                     st.info(f"📊 Категория: {result.get('document', {}).get('category', 'N/A')}")
+                    # Обновляем ключ для сброса состояния загрузчика
+                    st.session_state[f"upload_key_{session['id']}"] = st.session_state.get(f"upload_key_{session['id']}", 0) + 1
                     # Перезагружаем страницу для обновления списка
                     st.rerun()
                 else:
@@ -98,11 +111,15 @@ with tab2:
                         error_detail = response.json()
                         st.error(f"Детали: {error_detail}")
                     except:
-                        st.error(f"Детали: {response.text[:200]}")
+                        st.error(f"Детали: {response.text[:500]}")
             except requests.exceptions.Timeout:
-                st.error("⏰ Таймаут загрузки. Файл слишком большой?")
+                st.error("⏰ Таймаут загрузки (5 минут). Попробуйте файл меньшего размера.")
+            except requests.exceptions.ConnectionError as e:
+                st.error("❌ Ошибка подключения к серверу. Проверьте, что backend запущен.")
             except Exception as e:
                 st.error(f"❌ Ошибка загрузки: {str(e)}")
+                import traceback
+                st.code(traceback.format_exc())
     
     st.markdown("---")
     st.markdown("### 📋 Документы сессии")
@@ -156,33 +173,48 @@ with tab3:
     # Для admin - загрузка в глобальную базу
     if user_role == "admin":
         st.info("🔑 Режим администратора: вы можете загружать файлы в глобальную базу")
-        
+
+        # Ключ для принудительного обновления загрузчика
+        upload_key_global_suffix = st.session_state.get("upload_key_global", 0)
+        upload_key_global = f"global_upload_{upload_key_global_suffix}"
+
         uploaded_file_global = st.file_uploader(
             "Загрузить в глобальную базу",
             type=["pdf", "txt", "md", "docx"],
-            key="global_upload",
+            key=upload_key_global,
             help="Файл будет доступен всем пользователям"
         )
-        
+
         if uploaded_file_global:
             st.info(f"📄 Файл: **{uploaded_file_global.name}** ({uploaded_file_global.size / 1024:.1f} KB)")
-            
+
             if st.button("📤 Загрузить в глобальную базу", type="primary"):
                 try:
                     headers = api_client.get_headers()
                     files = {"file": (uploaded_file_global.name, uploaded_file_global.getvalue(), uploaded_file_global.type)}
-                    
-                    response = requests.post(
-                        f"{api_client.base_url}/upload/global",
-                        headers=headers,
-                        files=files
-                    )
-                    
+
+                    with st.spinner("⏳ Загрузка в глобальную базу... Это может занять несколько минут"):
+                        response = requests.post(
+                            f"{api_client.base_url}/upload/global",
+                            headers=headers,
+                            files=files,
+                            timeout=300  # 5 минут на обработку
+                        )
+
                     if response.status_code == 200:
                         st.success(f"✅ Файл '{uploaded_file_global.name}' загружен в глобальную базу!")
+                        # Обновляем ключ для сброса состояния загрузчика
+                        st.session_state["upload_key_global"] = st.session_state.get("upload_key_global", 0) + 1
                         st.rerun()
                     else:
-                        st.error(f"❌ Ошибка: {response.status_code} - {response.text}")
+                        st.error(f"❌ Ошибка: {response.status_code}")
+                        try:
+                            error_detail = response.json()
+                            st.error(f"Детали: {error_detail}")
+                        except:
+                            st.error(f"Детали: {response.text[:200]}")
+                except requests.exceptions.Timeout:
+                    st.error("⏰ Таймаут загрузки (5 минут). Попробуйте файл меньшего размера.")
                 except Exception as e:
                     st.error(f"❌ Ошибка загрузки: {str(e)}")
         

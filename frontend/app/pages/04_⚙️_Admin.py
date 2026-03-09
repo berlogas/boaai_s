@@ -247,16 +247,29 @@ with tab3:
         st.info("📭 Нет файлов, ожидающих загрузки")
     else:
         st.caption(f"Файлов в очереди: {len(pending_docs)}")
-        
+
         # Показываем суммарный размер
-        total_size = sum(doc['size_mb'] for doc in pending_docs)
-        st.caption(f"Общий размер: {total_size:.2f} MB")
-        
+        total_size_bytes = sum(doc.get('size_bytes', 0) for doc in pending_docs)
+        if total_size_bytes >= 1024 * 1024:
+            total_size_formatted = f"{total_size_bytes / (1024 * 1024):.2f} MB"
+        elif total_size_bytes >= 1024:
+            total_size_formatted = f"{total_size_bytes / 1024:.1f} KB"
+        else:
+            total_size_formatted = f"{total_size_bytes} Б"
+        st.caption(f"Общий размер: {total_size_formatted}")
+
         for doc in pending_docs:
-            with st.expander(f"📄 **{doc['name']}** ({doc['size_mb']} MB)"):
+            size_bytes = doc.get('size_bytes', 0)
+            if size_bytes >= 1024 * 1024:
+                size_display = f"{size_bytes / (1024 * 1024):.2f} MB"
+            elif size_bytes >= 1024:
+                size_display = f"{size_bytes / 1024:.1f} KB"
+            else:
+                size_display = f"{size_bytes} Б"
+            with st.expander(f"📄 **{doc['name']}** ({size_display})"):
                 st.caption(f"Добавлен: {doc['added_at']}")
                 st.caption(f"Путь: {doc['path']}")
-                
+
                 col1, col2 = st.columns(2)
                 with col1:
                     st.info("ℹ️ Файл готов к загрузке")

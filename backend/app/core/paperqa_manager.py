@@ -18,72 +18,61 @@ class PaperQAManager:
         os.makedirs(index_path, exist_ok=True)
 
     async def initialize(self):
-        async with self._lock:
-            if self.docs is None:
-                logger.info(f"Инициализация PaperQA для {self.index_path}")
-                self.docs = Docs()
-                # Пробуем загрузить существующий индекс через pickle
-                index_file = os.path.join(self.index_path, "docs.pkl")
-                if os.path.exists(index_file):
-                    try:
-                        logger.info("Загрузка существующего индекса...")
+        """Инициализация PaperQA. Вызывать только внутри add_document с захваченным lock."""
+        if self.docs is None:
+            logger.info(f"Инициализация PaperQA для {self.index_path}")
+            # Пробуем загрузить существующий индекс через pickle
+            index_file = os.path.join(self.index_path, "docs.pkl")
+            if os.path.exists(index_file):
+                try:
+                    logger.info("Загрузка существующего индекса...")
+                    # Загружаем pickle в отдельном потоке чтобы не блокировать event loop
+                    def load_pickle():
                         with open(index_file, 'rb') as f:
-                            self.docs = pickle.load(f)
-                        logger.info("Индекс загружен")
-                    except Exception as e:
-                        logger.error(f"Failed to load index: {e}")
+                            return pickle.load(f)
+                    self.docs = await asyncio.to_thread(load_pickle)
+                    logger.info("Индекс загружен")
+                except Exception as e:
+                    logger.error(f"Failed to load index: {e}")
+                    self.docs = Docs()
+            else:
+                self.docs = Docs()
 
     async def add_document(self, file_path: str, doc_name: str, category: str = "temp_literature", project_id: Optional[str] = None) -> bool:
         async with self._lock:
-            await self.initialize()
+            # Проверяем инициализацию внутри lock
+            if self.docs is None:
+                await self.initialize()
             try:
                 start_time = datetime.now()
                 logger.info(f"Начало добавления документа: {doc_name}")
                 logger.info(f"  Шаг 1/3: Чтение файла и создание эмбеддингов...")
 
-                # Конфигурация для Ollama через litellm
-                ollama_llm_config = {
-                    "model_list": [
-                        {
-                            "model_name": f"ollama/{settings.DEFAULT_LLM_MODEL}",
-                            "litellm_params": {
-                                "model": f"ollama/{settings.DEFAULT_LLM_MODEL}",
-                                "api_base": settings.OLLAMA_BASE_URL,
-                            },
-                        }
-                    ]
-                }
+                # PaperQA 2026.3.3 использует async метод aadd
+                # Конфигурация для Ollama
+                from paperqa import Settings as PaperQASettings
+                
+                pqa_settings = PaperQASettings(
+                    llm=f"ollama/{settings.DEFAULT_LLM_MODEL}",
+                    summary_llm=f"ollama/{settings.DEFAULT_LLM_MODEL}",
+                    embedding=f"ollama/{settings.DEFAULT_EMBEDDING_MODEL}",
+                )
 
-                # В версии 5.29.1 используем sync метод add
-                def add_sync():
-                    d = Docs()
-                    d.add(
-                        file_path,
-                        docname=doc_name,
-                        citation=category,
-                        disable_check=True,
-                        settings=Settings(
-                            llm=f"ollama/{settings.DEFAULT_LLM_MODEL}",
-                            llm_config=ollama_llm_config,
-                            summary_llm=f"ollama/{settings.DEFAULT_LLM_MODEL}",
-                            summary_llm_config=ollama_llm_config,
-                            embedding=f"ollama/{settings.DEFAULT_EMBEDDING_MODEL}",
-                            embedding_config=ollama_llm_config,
-                        )
-                    )
-                    return d
-                
-                # Запускаем в отдельном потоке
-                loop = asyncio.get_event_loop()
-                self.docs = await loop.run_in_executor(None, add_sync)
-                
+                # Используем async метод aadd напрямую
+                await self.docs.aadd(
+                    file_path,
+                    docname=doc_name,
+                    citation=category,
+                    settings=pqa_settings
+                )
+
                 logger.info(f"  Шаг 2/3: Сохранение индекса через pickle...")
                 # Сохраняем через pickle
                 index_file = os.path.join(self.index_path, "docs.pkl")
                 os.makedirs(self.index_path, exist_ok=True)
                 with open(index_file, 'wb') as f:
                     pickle.dump(self.docs, f)
-                
+
                 logger.info(f"  Шаг 3/3: Готово")
 
                 elapsed = (datetime.now() - start_time).total_seconds()
@@ -96,7 +85,9 @@ class PaperQAManager:
                 return False
 
     async def search(self, query: str, top_k: int = 5) -> List[Dict]:
-        await self.initialize()
+        async with self._lock:
+            if self.docs is None:
+                await self.initialize()
         try:
             results = await self.docs.query(query, settings=Settings(answer=False, k=top_k))
             contexts = []

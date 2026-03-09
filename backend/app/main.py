@@ -179,8 +179,28 @@ async def upload_document(
     if not session:
         raise HTTPException(status_code=404, detail="Сессия не найдена")
 
-    file_path = os.path.join(settings.DATA_PATH, "sessions", session_id, file.filename)
-    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    # Проверяем конфликт имён — если файл уже есть, добавляем номер
+    filename = file.filename
+    file_dir = os.path.join(settings.DATA_PATH, "sessions", session_id)
+    os.makedirs(file_dir, exist_ok=True)
+    
+    file_path = os.path.join(file_dir, filename)
+    
+    # Если файл с таким именем уже существует — добавляем номер
+    if os.path.exists(file_path):
+        name_parts = os.path.splitext(filename)
+        base_name = name_parts[0]
+        extension = name_parts[1]
+        
+        counter = 1
+        while True:
+            new_filename = f"{base_name}_{counter}{extension}"
+            file_path = os.path.join(file_dir, new_filename)
+            if not os.path.exists(file_path):
+                filename = new_filename
+                logger.info(f"⚠️ Файл переименован: {new_filename} (конфликт имён в сессии {session_id})")
+                break
+            counter += 1
 
     with open(file_path, "wb") as buffer:
         buffer.write(await file.read())
@@ -189,12 +209,12 @@ async def upload_document(
     file_size_mb = file_size_bytes / (1024 * 1024)
 
     doc_meta = {
-        "name": file.filename,
+        "name": filename,
         "path": file_path,
         "category": category,
         "project_id": project_id,
-        "size_mb": round(file_size_mb, 6),  # Больше знаков для малых файлов
-        "size_bytes": file_size_bytes,  # Сохраняем точный размер
+        "size_mb": round(file_size_mb, 6),
+        "size_bytes": file_size_bytes,
         "uploaded_at": __import__('datetime').datetime.now().isoformat()
     }
 
@@ -203,7 +223,7 @@ async def upload_document(
     )
 
     session_pqa = rag_engine._get_session_pqa(session_id)
-    await session_pqa.add_document(file_path, file.filename, category, project_id)
+    await session_pqa.add_document(file_path, filename, category, project_id)
 
     return {
         "message": "Документ загружен",
@@ -366,21 +386,25 @@ async def list_pending_uploads(current_user: dict = Depends(get_current_user)):
     """Получить список файлов в папке uploads, ожидающих загрузки"""
     import glob
     pending_files = []
-    
-    # Поддерживаемые форматы PaperQA2: 
+
+    # Поддерживаемые форматы PaperQA2:
     # https://github.com/Future-House/paper-qa#valid-extensions
     for pattern in ["*.pdf", "*.txt", "*.md", "*.html", "*.docx", "*.xlsx", "*.pptx", "*.py", "*.ts", "*.yaml", "*.json", "*.csv", "*.xml"]:
         file_pattern = os.path.join(settings.UPLOADS_PATH, pattern)
         for file_path in glob.glob(file_pattern):
             if os.path.isfile(file_path):
                 stat = os.stat(file_path)
+                size_bytes = stat.st_size
+                size_mb = size_bytes / (1024 * 1024)
                 pending_files.append({
                     "name": os.path.basename(file_path),
                     "path": file_path,
-                    "size_mb": round(stat.st_size / (1024 * 1024), 2),
+                    "size_bytes": size_bytes,
+                    "size_mb": round(size_mb, 4),
+                    "size_formatted": f"{size_bytes / (1024 * 1024):.2f} MB" if size_bytes >= 1024 * 1024 else f"{size_bytes / 1024:.1f} KB",
                     "added_at": datetime.fromtimestamp(stat.st_mtime).isoformat()
                 })
-    
+
     return sorted(pending_files, key=lambda x: x["added_at"])
 
 # Глобальная переменная для хранения статуса загрузки
@@ -425,11 +449,32 @@ async def process_upload_task(user_id: str):
                     )
 
                     # Перемещаем в documents после успешной индексации
+                    # Если файл с таким именем уже есть — добавляем номер
                     dest_path = os.path.join(settings.GLOBAL_INDEX_PATH, "documents", filename)
                     os.makedirs(os.path.dirname(dest_path), exist_ok=True)
-                    shutil.move(file_path, dest_path)
                     
-                    logger.info(f"  ✅ Шаг 3/3: Файл перемещён в хранилище")
+                    # Проверяем конфликт имён
+                    if os.path.exists(dest_path):
+                        # Разбиваем имя на части: file.pdf → file, .pdf
+                        name_parts = os.path.splitext(filename)
+                        base_name = name_parts[0]
+                        extension = name_parts[1]
+                        
+                        # Ищем свободное имя с номером
+                        counter = 1
+                        while True:
+                            new_filename = f"{base_name}_{counter}{extension}"
+                            new_dest_path = os.path.join(settings.GLOBAL_INDEX_PATH, "documents", new_filename)
+                            if not os.path.exists(new_dest_path):
+                                dest_path = new_dest_path
+                                filename = new_filename
+                                logger.info(f"⚠️ Файл переименован: {new_filename} (конфликт имён)")
+                                break
+                            counter += 1
+                    
+                    shutil.move(file_path, dest_path)
+                    logger.info(f"  ✅ Файл перемещён в хранилище: {filename}")
+                    
                     logger.info(f"✅ Файл {filename} загружен успешно")
 
                     uploaded.append({
