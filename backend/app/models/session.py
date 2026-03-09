@@ -10,6 +10,7 @@ class DocumentMeta(BaseModel):
     project_id: Optional[str] = None
     size_mb: float
     uploaded_at: str
+
 class ProjectMeta(BaseModel):
     id: str
     name: str

@@ -6,8 +6,9 @@ class Settings(BaseSettings):
     SECRET_KEY: str = os.getenv("SECRET_KEY", "change_me_in_production")
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    
+
     OLLAMA_BASE_URL: str = "http://ollama:11434"
+    OLLAMA_TIMEOUT: int = 120  # Таймаут для запросов к Ollama (секунды)
     DEFAULT_LLM_MODEL: str = "llama3.1:8b"
     DEFAULT_EMBEDDING_MODEL: str = "nomic-embed-text"
     MAX_SESSIONS_PER_USER: int = 10
@@ -16,7 +17,7 @@ class Settings(BaseSettings):
     MAX_PROJECTS_PER_SESSION: int = 5
     SESSION_TTL_DAYS: int = 90
     HEARTBEAT_INTERVAL_MINUTES: int = 5
-    
+
     DATA_PATH: str = "/app/data"
     GLOBAL_INDEX_PATH: str = "/app/global_index"
     UPLOADS_PATH: str = "/app/uploads"
