@@ -73,7 +73,8 @@ print('STATIC_SERVING:', os.environ.get('STREAMLIT_SERVER_ENABLE_STATIC_SERVING'
 ```
 
 **Ожидаемый вывод:**
-```
+
+```text
 GATHER_USAGE_STATS: false
 STATIC_SERVING: false
 ```
@@ -85,7 +86,8 @@ docker logs berezhinskii-ui 2>&1 | tail -10
 ```
 
 **Ожидаемый вывод:**
-```
+
+```text
 You can now view your Streamlit app in your browser.
 URL: http://0.0.0.0:8501
 ```
@@ -106,7 +108,7 @@ docker exec berezhinskii-ui netstat -tn 2>/dev/null | grep -v "Local\|^$"
 ## 🚫 Что отключено
 
 | Компонент | Статус | Примечание |
-|-----------|--------|------------|
+| --------- | ------ | ---------- |
 | **Сбор статистики** | ❌ Отключен | `gatherUsageStats = false` |
 | **Проверка обновлений** | ❌ Отключена | `showWarningOnDirectExecution = false` |
 | **Кнопка Deploy** | ❌ Скрыта | CSS `#MainMenu {visibility: hidden;}` |
@@ -143,16 +145,18 @@ iptables -I DOCKER-USER -i docker0 -o eth0 -j DROP
 
 ## 📊 Сравнение
 
-### До изменений:
-```
+### До изменений
+
+```text
 Collecting usage statistics. To deactivate, set browser.gatherUsageStats to False.
 https://streamlit.io
 Copyright 2026 Snowflake Inc. All rights reserved.
 [Deploy] кнопка видна
 ```
 
-### После изменений:
-```
+### После изменений
+
+```text
 You can now view your Streamlit app in your browser.
 URL: http://0.0.0.0:8501
 [Никаких внешних подключений]
@@ -175,6 +179,7 @@ URL: http://0.0.0.0:8501
 ### Локальные подключения
 
 Приложение продолжает работать внутри Docker сети:
+
 - `frontend` ↔ `backend` (порт 8000)
 - `backend` ↔ `ollama` (порт 11434)
 
@@ -190,6 +195,7 @@ docker-compose up -d --build
 ### Безопасность
 
 Данные полностью под контролем:
+
 - Все данные хранятся локально в `data_volume/`
 - Нет внешних подключений
 - Сессии не передаются наружу

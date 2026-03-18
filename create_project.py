@@ -6,7 +6,7 @@
 """
 
 import os
-import json
+# import json
 
 # ─────────────────────────────────────────────
 # КОНФИГУРАЦИЯ ФАЙЛОВ
@@ -99,7 +99,6 @@ networks:
   default:    name: berezhinskii_network
     driver: bridge
 """,
-
     ".env": """# Security
 SECRET_KEY=your_super_secret_key_change_in_prod
 ALGORITHM=HS256
@@ -123,7 +122,6 @@ DATA_PATH=/app/data
 GLOBAL_INDEX_PATH=/app/global_index
 LOG_LEVEL=INFO
 """,
-
     ".env.example": """# Security
 SECRET_KEY=change_me_in_production
 ALGORITHM=HS256
@@ -146,7 +144,6 @@ HEARTBEAT_INTERVAL_MINUTES=5
 DATA_PATH=/app/data
 GLOBAL_INDEX_PATH=/app/global_index
 LOG_LEVEL=INFO""",
-
     ".dockerignore": """# Backend
 backend/__pycache__/
 backend/*.pyc
@@ -168,7 +165,6 @@ frontend/venv/
 .env
 .gitignore
 """,
-
     ".gitignore": """# Python
 __pycache__/
 *.py[cod]
@@ -203,7 +199,6 @@ Thumbs.db
 .coverage
 htmlcov/
 """,
-
     "init.sh": """#!/bin/bash
 echo "🚀 Инициализация BOAAI_S..."
 
@@ -242,7 +237,6 @@ echo "✅ BOAAI_S готов к работе!"
 echo "🌐 Frontend: http://localhost:8501"
 echo "🔧 Backend:  http://localhost:8000/docs"
 """,
-
     "backup.sh": """#!/bin/bashBACKUP_DIR="./backups"
 DATE=$(date +%Y%m%d_%H%M%S)
 
@@ -274,7 +268,6 @@ find $BACKUP_DIR -name "*.backup" -mtime +30 -delete
 
 echo "✅ Резервное копирование завершено: $BACKUP_DIR"
 """,
-
     "README.md": """# 🔬 BOAAI_S
 
 Локальная научная платформа с RAG для научных учреждений.
@@ -323,7 +316,6 @@ chmod +x init.sh
 
 MIT License
 """,
-
     # ─────────────────────────────────────────────
     # BACKEND FILES
     # ─────────────────────────────────────────────
@@ -350,7 +342,6 @@ ENV PYTHONUNBUFFERED=1
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 """,
-
     "backend/requirements.txt": """fastapi==0.109.0
 uvicorn[standard]==0.27.0
 python-multipart==0.0.6
@@ -365,7 +356,6 @@ aiofiles==23.2.1
 httpx==0.26.0
 python-dotenv==1.0.0
 """,
-
     "backend/pytest.ini": """[pytest]
 testpaths = tests
 python_files = test_*.py
@@ -374,9 +364,7 @@ python_functions = test_*
 addopts = -v --tb=short
 asyncio_mode = auto
 """,
-
     "backend/app/__init__.py": "",
-
     "backend/app/main.py": """from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional, List
@@ -572,9 +560,7 @@ async def startup_event():
     print(f"🤖 Ollama URL: {settings.OLLAMA_BASE_URL}")
     print(f"🧠 LLM Model: {settings.DEFAULT_LLM_MODEL}")
 """,
-
     "backend/app/core/__init__.py": "",
-
     "backend/app/core/config.py": """from pydantic_settings import BaseSettings
 from typing import Optional
 import os
@@ -608,7 +594,6 @@ settings = Settings()
 os.makedirs(settings.DATA_PATH, exist_ok=True)
 os.makedirs(settings.GLOBAL_INDEX_PATH, exist_ok=True)
 """,
-
     "backend/app/core/security.py": """from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
@@ -694,7 +679,6 @@ def require_role(required_role: str):
         return current_user
     return role_checker
 """,
-
     "backend/app/core/paperqa_manager.py": """import os
 import asyncio
 from typing import List, Dict, Optional
@@ -751,9 +735,7 @@ class PaperQAManager:
         async with self._lock:
             self.docs = Docs()
 """,
-
     "backend/app/models/__init__.py": "",
-
     "backend/app/models/user.py": """from pydantic import BaseModel
 from typing import Optional
 
@@ -771,7 +753,6 @@ class Token(BaseModel):
     token_type: str
     role: str
 """,
-
     "backend/app/models/session.py": """from pydantic import BaseModel
 from typing import List, Optional
 
@@ -804,9 +785,7 @@ class SessionResponse(BaseModel):
     last_action: str
     storage_used_mb: float
 """,
-
     "backend/app/services/__init__.py": "",
-
     "backend/app/services/session_manager.py": """import json
 import os
 import asyncio
@@ -924,7 +903,6 @@ class SessionManager:
 
 session_manager = SessionManager()
 """,
-
     "backend/app/services/rag_fusion.py": """import asyncio
 from typing import List, Dict, Optional
 import litellm
@@ -989,13 +967,9 @@ class RAGFusionEngine:
 
 rag_engine = RAGFusionEngine()
 """,
-
     "backend/app/api/__init__.py": "",
-
     "backend/app/data/.gitkeep": "",
-
     "backend/tests/__init__.py": "",
-
     "backend/tests/test_api.py": """import pytest
 from fastapi.testclient import TestClient
 from app.main import app
@@ -1027,7 +1001,6 @@ def test_quick_query():
     assert response.status_code == 200
     assert "answer" in response.json()
 """,
-
     # ─────────────────────────────────────────────    # FRONTEND FILES
     # ─────────────────────────────────────────────
     "frontend/Dockerfile": """FROM python:3.11-slim
@@ -1046,15 +1019,12 @@ ENV STREAMLIT_SERVER_HEADLESS=true
 
 CMD ["streamlit", "run", "app/main.py", "--server.port=8501", "--server.address=0.0.0.0"]
 """,
-
     "frontend/requirements.txt": """streamlit==1.30.0
 requests==2.31.0
 pandas==2.1.4
 python-dotenv==1.0.0
 """,
-
     "frontend/app/__init__.py": "",
-
     "frontend/app/main.py": """import streamlit as st
 from core.api_client import api_client
 
@@ -1099,9 +1069,7 @@ else:
     elif page == "⚙️ Админ-панель":
         st.switch_page("pages/04_⚙️_Admin.py")
 """,
-
     "frontend/app/core/__init__.py": "",
-
     "frontend/app/core/api_client.py": """import requests
 import streamlit as st
 from typing import Optional, Dict, List
@@ -1181,9 +1149,7 @@ class APIClient:
 
 api_client = APIClient()
 """,
-
     "frontend/app/pages/__init__.py": "",
-
     "frontend/app/pages/01_🏠_Dashboard.py": """import streamlit as st
 from core.api_client import api_client
 
@@ -1226,7 +1192,6 @@ else:
                 st.session_state["current_session"] = session
                 st.rerun()            st.markdown("---")
 """,
-
     "frontend/app/pages/02_💼_Workspace.py": """import streamlit as st
 from core.api_client import api_client
 
@@ -1267,12 +1232,10 @@ with tab2:
     if uploaded_file and st.button("📤 Загрузить"):
         st.success(f"{uploaded_file.name} загружен!")
 """,
-
     "frontend/app/pages/03_📊_Projects.py": """import streamlit as st
 st.title("📊 Проекты статей")
 st.info("Функционал в разработке")
 """,
-
     "frontend/app/pages/04_⚙️_Admin.py": """import streamlit as stfrom core.api_client import api_client
 
 st.title("⚙️ Админ-панель")
@@ -1299,7 +1262,6 @@ with tab2:
     st.markdown("### Все сессии")
     st.info("Список сессий всех пользователей")
 """,
-
     "frontend/app/pages/05_🔐_Login.py": """import streamlit as st
 from core.api_client import api_client
 
@@ -1324,11 +1286,8 @@ with st.form("login_form"):
                     st.error("❌ Неверные credentials")
 st.info("**Тест:** admin / admin123")
 """,
-
     "frontend/app/components/__init__.py": "",
-
     "frontend/app/utils/__init__.py": "",
-
     "frontend/app/utils/helpers.py": """import streamlit as st
 from datetime import datetime
 
@@ -1348,7 +1307,6 @@ def format_date(iso_string: str) -> str:
     except:
         return iso_string
 """,
-
     # ─────────────────────────────────────────────
     # DOCS
     # ─────────────────────────────────────────────
@@ -1369,7 +1327,6 @@ def format_date(iso_string: str) -> str:
 - session_only: только ваши файлы
 - global_only: только база
 """,
-
     "docs/ADMIN_GUIDE.md": """# ⚙️ Руководство администратора
 ## Пользователи
 - Создавайте через Админ-панель
@@ -1384,7 +1341,6 @@ def format_date(iso_string: str) -> str:
 ./backup.sh
 ```
 """,
-
     "data_volume/.gitkeep": "",
     "data_volume/global_index/.gitkeep": "",
     "data_volume/sessions/.gitkeep": "",
@@ -1395,32 +1351,34 @@ def format_date(iso_string: str) -> str:
 # ГЕНЕРАЦИЯ ФАЙЛОВ
 # ─────────────────────────────────────────────
 
+
 def create_project():
     print("🚀 Создание проекта BOAAI_S...")
-    
+
     for filepath, content in FILES.items():
         # Create directory if needed
         directory = os.path.dirname(filepath)
         if directory:
             os.makedirs(directory, exist_ok=True)
-        
+
         # Write file
-        with open(filepath, 'w', encoding='utf-8') as f:
+        with open(filepath, "w", encoding="utf-8") as f:
             f.write(content)
-        
+
         print(f"✅ {filepath}")
-    
+
     # Make scripts executable
     import stat
-    for script in ['init.sh', 'backup.sh']:
+
+    for script in ["init.sh", "backup.sh"]:
         if os.path.exists(script):
             os.chmod(script, os.stat(script).st_mode | stat.S_IEXEC)
-    
-    print("\\n" + "="*50)
+
+    print("\\n" + "=" * 50)
     print("✅ Проект создан успешно!")
-    print("="*50)
+    print("=" * 50)
     print("\\n📁 Структура:")
-    print("  berezhinskii/")    
+    print("  berezhinskii/")
     print("  ├── docker-compose.yml")
     print("  ├── .env")
     print("  ├── init.sh")
@@ -1435,6 +1393,7 @@ def create_project():
     print("\\n🌐 Доступ:")
     print("  Frontend: http://localhost:8501")
     print("  Backend:  http://localhost:8000/docs")
+
 
 if __name__ == "__main__":
     create_project()

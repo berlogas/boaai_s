@@ -3,19 +3,23 @@
 ## ✅ Результаты тестирования
 
 ### 1. PDF на английском языке
+
 - **Файл:** `test_document.pdf`
 - **Статус:** ✅ Успешно загружен и проиндексирован
 - **Текста:** 1024 символа
 - **Время обработки:** ~2-4 минуты
 
 ### 2. PDF с русским текстом (Unicode)
+
 - **Файл:** `test_russian.pdf`
 - **Статус:** ✅ Успешно загружен и проиндексирован
 - **Текста:** 233 символа
 - **Unicode:** ✅ Кириллица обрабатывается корректно
 
 ### 3. Unicode исправление
+
 Функция `hexdigest()` в `paper-qa/utils.py` исправлена:
+
 ```python
 # Было
 data = data.encode("utf-8")
@@ -24,8 +28,9 @@ data = data.encode("utf-8")
 data = data.encode("utf-8", errors="replace")
 ```
 
-**Тест Unicode:**
-```
+### Тест Unicode
+
+```text
 ✅ "Привет мир!" -> 9c89906aaed6dd46dc640bcbc15beadd
 ✅ "Тест Unicode с кириллицей" -> 4163789dbd74bc09d1b0e0f40916fe27
 ✅ "Смешанный текст: Hello мир 123" -> 8be84b752249b592a4a52c3792ba480f
@@ -37,7 +42,7 @@ data = data.encode("utf-8", errors="replace")
 
 ### Способ 1: Через веб-интерфейс
 
-1. Откройте http://localhost:8501
+1. Откройте <http://localhost:8501>
 2. Перейдите на страницу **Admin**
 3. Скопируйте PDF файл в папку `data_volume/uploads/`
 4. Нажмите **Process Uploads**
@@ -117,6 +122,7 @@ docker logs berezhinskii-api 2>&1 | grep -i -E "pdf|upload|index|error"
 **Причина:** Ollama не отвечает или медленно работает
 
 **Решение:**
+
 ```bash
 # Проверьте доступность Ollama
 docker exec berezhinskii-api curl http://ollama:11434/api/tags
@@ -134,11 +140,13 @@ docker exec berezhinskii-ollama ollama pull nomic-embed-text
 **Причина:** Не применено исправление в `paper-qa/utils.py`
 
 **Проверка:**
+
 ```bash
 docker exec berezhinskii-api grep "errors=\"replace\"" /usr/local/lib/python3.11/site-packages/paperqa/utils.py
 ```
 
 **Решение:** Пересоберите контейнер:
+
 ```bash
 docker-compose up -d --build backend
 ```
@@ -165,9 +173,9 @@ docker-compose up -d --build backend
 ## 📈 Производительность
 
 | Размер PDF | Страниц | Время обработки |
-|------------|---------|-----------------|
+| ---------- | ------- | --------------- |
 | 100 KB     | 1-2     | ~30 сек         |
 | 1 MB       | 10-15   | ~2-3 мин        |
 | 5 MB       | 50+     | ~10-15 мин      |
 
-*Время зависит от скорости Ollama и доступных ресурсов CPU/RAM*
+Время зависит от скорости Ollama и доступных ресурсов CPU/RAM.

@@ -1,3 +1,4 @@
+<!-- markdownlint-disable MD013 -->
 # 💾 Хранение индексов и данных
 
 ## 📁 Где хранятся индексы
@@ -6,11 +7,12 @@
 
 Все данные приложения сохраняются в **локальной папке** на хосте:
 
-```
+```text
 /home/homo/projects/boaai_s/data_volume/
 ├── global_index/           # Глобальный индекс PaperQA
 │   ├── docs.pkl           # Основной индекс (pickle)
-│   ├── docs.json          # Резервная копия индекса (JSON)
+│   ├── docs.json          # Резервная копия индекса
+│   │                      # (JSON)
 │   ├── documents/         # Обработанные файлы
 │   │   ├── test_document.pdf
 │   │   ├── test_russian.pdf
@@ -18,7 +20,8 @@
 │   │   └── ...
 │   └── global_index/      # Дополнительные индексы
 │       └── global_index.pkl
-├── uploads/               # Файлы, ожидающие обработки
+├── uploads/               # Файлы, ожидающие
+│   │                      # обработки
 │   └── ...
 ├── sessions/              # Данные сессий
 ├── backup/                # Резервные копии
@@ -39,23 +42,34 @@ volumes:
   - ollama_data:/root/.ollama          # Модели Ollama (Docker volume)
 ```
 
-**Важно:** 
-- `./data_volume/*` — **локальные папки** на хосте (сохраняются при пересборке)
-- `ollama_data:` — **Docker volume** (сохраняется при `docker-compose down`, удаляется при `docker-compose down -v`)
+**Важно:**
+
+- `./data_volume/*` — **локальные папки** на хосте
+  (сохраняются при пересборке)
+- `ollama_data:` — **Docker volume**
+  (сохраняется при `docker-compose down`,
+  удаляется при `docker-compose down -v`)
 
 ---
 
 ## ✅ Что сохраняется при пересборке
 
 | Данные | Файл/Папка | Сохраняется? | Где |
-|--------|-----------|--------------|-----|
-| **Индексы PaperQA** | `data_volume/global_index/docs.pkl` | ✅ Да | Локальная папка |
-| **Обработанные файлы** | `data_volume/global_index/documents/` | ✅ Да | Локальная папка |
-| **Файлы загрузок** | `data_volume/uploads/` | ✅ Да | Локальная папка |
-| **Пользователи** | `data_volume/users.json` | ✅ Да | Локальная папка |
-| **Сессии** | `data_volume/sessions/` | ✅ Да | Локальная папка |
-| **Модели Ollama** | Docker volume `ollama_data` | ⚠️ Зависит | Docker volume |
-| **Логи** | В контейнере | ❌ Нет | Только в памяти |
+| ------ | ---------- | ------------ | --- |
+| **Индексы PaperQA** | `data_volume/global_index/docs.pkl` | ✅ Да | Локальная
+  папка |
+| **Обработанные файлы** | `data_volume/global_index/documents/` | ✅ Да | Локальная
+  папка |
+| **Файлы загрузок** | `data_volume/uploads/` | ✅ Да | Локальная
+  папка |
+| **Пользователи** | `data_volume/users.json` | ✅ Да | Локальная
+  папка |
+| **Сессии** | `data_volume/sessions/` | ✅ Да | Локальная
+  папка |
+| **Модели Ollama** | Docker volume `ollama_data` | ⚠️ Зависит | Docker
+  volume |
+| **Логи** | В контейнере | ❌ Нет | Только
+  в памяти |
 
 ---
 

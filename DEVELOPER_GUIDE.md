@@ -4,23 +4,25 @@
 
 ---
 
+
 ## 📋 Оглавление
 
-1. [Требования](#-требования)
-2. [Архитектура](#-архитектура)
-3. [Быстрый старт](#-быстрый-старт)
-4. [Локальная разработка](#-локальная-разработка)
-5. [Тестирование](#-тестирование)
-6. [Полезные команды](#-полезные-команды)
-7. [Структура проекта](#-структура-проекта)
-8. [Troubleshooting](#-troubleshooting)
+1. [Требования](#требования)
+2. [Архитектура](#архитектура)
+3. [Быстрый старт](#быстрый-старт)
+4. [Локальная разработка](#локальная-разработка)
+5. [Тестирование](#тестирование)
+6. [Полезные команды](#полезные-команды)
+7. [Структура проекта](#структура-проекта)
+8. [Troubleshooting](#troubleshooting)
+
 
 ---
 
 ## 🔧 Требования
 
 | Компонент | Версия | Примечание |
-|-----------|--------|------------|
+| --------- | ------ | ---------- |
 | Python | 3.10+ | Обязательно |
 | Docker | 20.0+ | Для контейнеризации |
 | Docker Compose | 2.0+ | Для оркестрации |
@@ -28,14 +30,14 @@
 
 ### Опционально (для локальной разработки)
 
-- **Ollama** — локальная LLM (https://ollama.com)
+- **Ollama** — локальная LLM ([https://ollama.com](https://ollama.com))
 - **VSCode** + расширения: Python, Docker, GitLens
 
 ---
 
 ## 🏗 Архитектура
 
-```
+```text
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
 │  Frontend   │────▶│   Backend   │────▶│   Ollama    │
 │ Streamlit   │     │   FastAPI   │     │     LLM     │
@@ -46,7 +48,7 @@
 **Компоненты:**
 
 | Сервис | Порт | Описание |
-|--------|------|----------|
+| ------ | ---- | -------- |
 | Frontend | 8501 | Streamlit UI |
 | Backend | 8000 | FastAPI REST API |
 | Ollama | 11434 | Локальная LLM |
@@ -70,6 +72,7 @@ chmod +x init.sh
 ```
 
 Скрипт автоматически:
+
 - Создаст `.env` из `.env.example`
 - Сгенерирует `SECRET_KEY`
 - Создаст необходимые директории
@@ -79,15 +82,15 @@ chmod +x init.sh
 ### 3. Проверка работы
 
 | Сервис | URL |
-|--------|-----|
-| Frontend | http://localhost:8501 |
-| Backend API | http://localhost:8000/docs |
-| Ollama API | http://localhost:11434/api/tags |
+| ------ | --- |
+| Frontend | <http://localhost:8501> |
+| Backend API | <http://localhost:8000/docs> |
+| Ollama API | <http://localhost:11434/api/tags> |
 
 ### 4. Тестовый вход
 
 | Роль | Логин | Пароль |
-|------|-------|--------|
+| ---- | ----- | ------ |
 | Администратор | `admin` | `admin123` |
 | Исследователь | `researcher` | `researcher123` |
 
@@ -138,7 +141,7 @@ cd backend
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-API документация: http://localhost:8000/docs
+API документация: <http://localhost:8000/docs>
 
 ### 6. Запуск Frontend
 
@@ -148,7 +151,7 @@ cd frontend
 streamlit run app/main.py --server.port 8501 --server.address localhost
 ```
 
-UI: http://localhost:8501
+UI: <http://localhost:8501>
 
 ---
 
@@ -261,7 +264,7 @@ source .venv/bin/activate
 
 ## 📁 Структура проекта
 
-```
+```text
 boaai_s/
 ├── backend/
 │   ├── app/
@@ -362,8 +365,8 @@ rm -rf data_volume/* ollama_data/*
 
 ## 📞 Контакты
 
-- GitHub: https://github.com/berlogas/boaai_s
-- Документация API: http://localhost:8000/docs
+- GitHub: [https://github.com/berlogas/boaai_s](https://github.com/berlogas/boaai_s)
+- Документация API: <http://localhost:8000/docs>
 
 ---
 

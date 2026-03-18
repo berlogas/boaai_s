@@ -1,6 +1,7 @@
 # Руководство по запуску приложения
 
 Приложение развёртывается в Docker-контейнерах и состоит из трёх компонентов:
+
 - **Backend** (FastAPI) — API сервер на порту 8000
 - **Frontend** (Streamlit) — веб-интерфейс на порту 8501
 - **Ollama** — локальная LLM на порту 11434
@@ -46,14 +47,15 @@ docker-compose ps
 ```
 
 Все контейнеры должны быть в статусе `Up`:
+
 - `berezhinskii-ollama`
 - `berezhinskii-api`
 - `berezhinskii-ui`
 
 ### 4. Откройте приложение в браузере
 
-- **Веб-интерфейс:** http://localhost:8501
-- **API документация:** http://localhost:8000/docs
+- **Веб-интерфейс:** <http://localhost:8501>
+- **API документация:** <http://localhost:8000/docs>
 
 ---
 
@@ -127,7 +129,7 @@ docker exec berezhinskii-ollama ollama rm llama3.1:8b
 
 Данные приложения сохраняются в следующих директориях:
 
-```
+```text
 /home/homo/projects/boaai_s/
 ├── data_volume/          # Данные приложения
 │   ├── global_index/     # Индексы документов
@@ -140,6 +142,7 @@ docker exec berezhinskii-ollama ollama rm llama3.1:8b
 ## 🔐 Авторизация
 
 По умолчанию:
+
 - **Логин:** `admin`
 - **Пароль:** `admin123`
 
@@ -256,15 +259,15 @@ docker system prune -a
 
 ## 🔌 API Endpoints
 
-| Метод | Endpoint | Описание |
-|-------|----------|----------|
-| GET | `/health` | Проверка здоровья |
-| POST | `/token` | Получение токена |
-| POST | `/upload/` | Загрузка файла |
-| POST | `/search/` | Поиск по индексам |
-| POST | `/chat/` | Запрос к RAG |
+| Метод  | Endpoint      | Описание           |
+| ------ | ------------- | ------------------ |
+| GET    | `/health`     | Проверка здоровья  |
+| POST   | `/token`      | Получение токена   |
+| POST   | `/upload/`    | Загрузка файла     |
+| POST   | `/search/`    | Поиск по индексам  |
+| POST   | `/chat/`      | Запрос к RAG       |
 
-Полная документация: http://localhost:8000/docs
+Полная документация: <http://localhost:8000/docs>
 
 ---
 

@@ -3,6 +3,7 @@
 ## ❌ Проблема
 
 Frontend пытался подключиться к backend по жёстко заданному IP адресу:
+
 ```python
 self.base_url = "http://172.18.0.3:8000"
 ```
@@ -10,7 +11,8 @@ self.base_url = "http://172.18.0.3:8000"
 **Проблема:** IP адрес контейнера меняется при пересоздании контейнера (пересборка, restart, и т.д.)
 
 **Симптомы:**
-```
+
+```text
 Ошибка: HTTPConnectionPool(host='172.18.0.3', port=8000): Max retries exceeded
 ❌ Неверные credentials
 ```
@@ -32,6 +34,7 @@ self.base_url = "http://backend:8000"
 **Файл:** `frontend/app/core/api_client.py`
 
 1. Основной URL подключения:
+
 ```python
 class APIClient:
     def __init__(self, base_url: str = None):
@@ -40,7 +43,8 @@ class APIClient:
         self.base_url = base_url or "http://backend:8000"
 ```
 
-2. URL в методе `upload_to_global_index` (curl запрос):
+1. URL в методе `upload_to_global_index` (curl запрос):
+
 ```python
 cmd = f'curl -s -w "\\nHTTP_CODE:%{{http_code}}" -X POST "http://backend:8000/admin/global-index/upload" ...'
 ```
@@ -79,7 +83,7 @@ else:
 
 ### 2. Проверка через веб-интерфейс
 
-1. Откройте http://localhost:8501
+1. Откройте <http://localhost:8501>
 2. Введите:
    - **Имя пользователя:** `admin`
    - **Пароль:** `admin123`
@@ -109,6 +113,7 @@ services:
 ```
 
 **Преимущества:**
+
 - ✅ IP адрес не нужен
 - ✅ Работает при пересоздании контейнеров
 - ✅ Не зависит от порядка запуска
@@ -138,6 +143,7 @@ self.base_url = os.getenv("BACKEND_URL", "http://backend:8000")
 ```
 
 В `docker-compose.yml`:
+
 ```yaml
 frontend:
   environment:
