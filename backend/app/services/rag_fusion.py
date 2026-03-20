@@ -61,23 +61,25 @@ class RAGFusionEngine:
         # Обрабатываем результаты глобального поиска
         for res in global_results:
             contexts.append({
-                "source": "📚 Global",
+                "source": "📚",
                 "text": res.get("text", ""),
-                "priority": 4
+                "priority": 4,
+                "doc_name": res.get("source", "Unknown")
             })
             sources_info.append({
                 "type": "global",
                 "name": res.get("source", "Unknown")
             })
-        
+
         # Обрабатываем результаты сессионного поиска
         for res in session_results:
             category = res.get("category", "temp_literature")
             priority = 1 if category in ["project_draft", "project_data"] else 3
             contexts.append({
-                "source": "📁 Session",
+                "source": "📁",
                 "text": res.get("text", ""),
-                "priority": priority
+                "priority": priority,
+                "doc_name": res.get("source", "Unknown")
             })
             sources_info.append({
                 "type": "session",
@@ -87,15 +89,17 @@ class RAGFusionEngine:
         # Сортируем и ограничиваем контекст
         contexts.sort(key=lambda x: x["priority"])
         contexts = contexts[:10]
-        
-        # Формируем промпт
+
+        # Формируем промпт с явным указанием источников
         context_text = "\n\n".join([
-            f"[{c['source']}] {c['text']}" for c in contexts
+            f"[{c['source']} {c['doc_name']}] {c['text']}" for c in contexts
         ])
-        
+
         system_prompt = (
-            "Ты научный ассистент. Отвечай ТОЛЬКО на основе контекста. "
-            "Указывай источники (📚 или 📁)."
+            "Ты научный ассистент. Отвечай ТОЛЬКО на основе предоставленного контекста. "
+            "В конце ответа укажи источники, которые ты использовал, в формате: "
+            "Источники: 📚 [имя документа] или 📁 [имя документа]. "
+            "Если информация из нескольких источников, перечисли их все."
         )
         user_prompt = f"Контекст:\n{context_text}\n\nВопрос: {query}"
         
@@ -103,6 +107,11 @@ class RAGFusionEngine:
         try:
             import litellm
             
+            # Логируем контекст для отладки
+            logger.info(f"RAG Fusion: найдено {len(contexts)} контекстов")
+            for i, ctx in enumerate(contexts[:3], 1):
+                logger.info(f"  Контекст {i}: {ctx['source']} {ctx['doc_name']}")
+
             response = await litellm.acompletion(
                 model=f"ollama/{settings.DEFAULT_LLM_MODEL}",
                 messages=[
@@ -111,7 +120,7 @@ class RAGFusionEngine:
                 ],
                 api_base=settings.OLLAMA_BASE_URL,
                 temperature=0.3,
-                timeout=60
+                timeout=settings.OLLAMA_TIMEOUT
             )
             
             return {

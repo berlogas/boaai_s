@@ -192,27 +192,34 @@ class PaperQAManager:
         Возвращает только контексты.
         """
         await self.initialize()
-        
+
         try:
-            # ✅ PaperQA 2026.03.03: используем aquery с answer=False
-            # или используем search (если доступен)
+            # ✅ PaperQA 2026.03.03: используем aquery
             results: Any = await self.docs.aquery(
                 query,
                 settings=self.settings,
             )
-            
+
             contexts = []
             if results.contexts:
                 for ctx in results.contexts[:top_k]:
+                    # ✅ PaperQA 2026.03.03: используем ctx.text.name для имени документа
+                    doc_name = ctx.text.name if ctx.text and hasattr(ctx.text, 'name') else 'Unknown'
+                    # Извлекаем только имя файла без "pages X-Y"
+                    if ' pages ' in doc_name:
+                        doc_name = doc_name.split(' pages ')[0]
+                    
+                    text_content = ctx.text.text if ctx.text and hasattr(ctx.text, 'text') else ''
+                    
                     contexts.append({
-                        "text": ctx.text,
-                        "source": ctx.docname,
-                        "citation": ctx.citation,
-                        "category": ctx.citation,
+                        "text": text_content,
+                        "source": doc_name,
+                        "citation": doc_name,
+                        "category": doc_name,
                         "score": getattr(ctx, 'score', None),
                     })
             return contexts
-            
+
         except Exception as e:
             logger.error(f"Search error: {e}")
             import traceback
@@ -224,26 +231,26 @@ class PaperQAManager:
         Полный запрос с генерацией ответа.
         """
         await self.initialize()
-        
+
         try:
             results: Any = await self.docs.aquery(
                 query,
                 settings=self.settings,
             )
-            
+
             return {
                 "answer": results.answer or "Нет ответа",
                 "contexts": [
                     {
-                        "text": ctx.text,
-                        "source": ctx.docname,
-                        "citation": ctx.citation,
+                        "text": ctx.text.text if ctx.text else '',
+                        "source": ctx.text.name.split(' pages ')[0] if ctx.text and hasattr(ctx.text, 'name') else 'Unknown',
+                        "citation": ctx.text.name.split(' pages ')[0] if ctx.text and hasattr(ctx.text, 'name') else 'Unknown',
                     }
                     for ctx in results.contexts
                 ],
                 "references": results.references or [],
             }
-            
+
         except Exception as e:
             logger.error(f"Query error: {e}")
             return {"answer": f"Ошибка: {str(e)}", "contexts": [], "references": []}

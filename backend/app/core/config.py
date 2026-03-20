@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
     OLLAMA_BASE_URL: str = "http://ollama:11434"
-    OLLAMA_TIMEOUT: int = 120  # Таймаут для запросов к Ollama (секунды)
+    OLLAMA_TIMEOUT: int = 3000  # Таймаут для запросов к Ollama (секунды) - 50 минут для слабых ПК
     DEFAULT_LLM_MODEL: str = "llama3.1:8b"
     DEFAULT_EMBEDDING_MODEL: str = "nomic-embed-text"
     MAX_SESSIONS_PER_USER: int = 10
